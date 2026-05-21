@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Minha Agenda Inteligente{% endblock %}
+
+{% block head %}
+<!-- Dependência Isolada do FullCalendar -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+{% endblock %}
+
+{% block content %}
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('agenda') }}">Agenda IA</a>
+        <div class="d-flex">
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4">
+    <div class="row">
+        <!-- Painel Lateral: Controles de IA -->
+        <div class="col-lg-3 mb-4">
+            
+            <!-- Formulário: IA Processar Anotação -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Transformar Anotação em Evento</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('ia_prompt') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="prompt" class="form-label text-muted small">Cole seu texto livre (ex: "Almoço com o João amanhã às 12h")</label>
+                            <textarea class="form-control" id="prompt" name="prompt" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-sm">Processar com IA</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Formulário: IA Gerar Rotina -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">Gerar Nova Rotina</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('ia_rotina') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="tipo_rotina" class="form-label text-muted small">Qual rotina deseja iniciar?</label>
+                            <input type="text" class="form-control" id="tipo_rotina" name="tipo_rotina" placeholder="Ex: Treino de pernas, Estudar Python..." required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 btn-sm">Criar Tarefas Automaticamente</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Área Principal: Calendário -->
+        <div class="col-lg-9">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div id="calendar" style="min-height: 600px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Janela Pop-up Flutuante do Evento (Gerenciamento) -->
+<div id="eventPopup" class="card border-0 shadow-lg position-absolute d-none" style="width: 320px; z-index: 1050;">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0 text-truncate" id="popupEventTitle" style="max-width: 250px;">Título</h6>
+        <button type="button" class="btn-close btn-close-white btn-sm" onclick="fecharPopup()" aria-label="Fechar"></button>
+    </div>
+    <div class="card-body p-3">
+        <p id="popupEventDateTime" class="text-primary small fw-bold mb-2"></p>
+        <p id="popupEventDescription" class="text-secondary small mb-3"></p>
+        
+        <div class="d-flex justify-content-between border-top pt-2">
+            <!-- Ação: Deletar -->
+            <form id="popupDeleteForm" action="/evento/deletar" method="POST" class="m-0">
+                <input type="hidden" name="evento_id" id="popupDeleteEventId" value="">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Deletar</button>
+            </form>
+            
+            <!-- Ação: Editar -->
+            <a href="#" id="popupEditEventLink" class="btn btn-sm btn-warning text-dark fw-medium">Editar</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var eventPopup = document.getElementById('eventPopup');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'timeGridWeek',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      locale: 'pt-br',
+      
+      // Injeção direta e segura do dicionário vindo do backend Flask/Jinja2
+      events: {{ eventos | tojson | safe if eventos else '[]' }},
+      
+      eventClick: function(info) {
+        // Preenche as informações do pop-up dinamicamente
+        document.getElementById('popupEventTitle').innerText = info.event.title;
+        document.getElementById('popupEventDescription').innerText = info.event.extendedProps.description || 'Sem descrição cadastrada.';
+        document.getElementById('popupEventDateTime').innerText = info.event.start.toLocaleString('pt-BR');
+        
+        // Define as ações corretas mapeando o ID do evento
+        document.getElementById('popupDeleteEventId').value = info.event.id;
+        document.getElementById('popupEditEventLink').href = '/evento/editar/' + info.event.id;
+        
+        // Posicionamento absoluto baseado nas coordenadas do cursor
+        eventPopup.style.left = (info.jsEvent.pageX + 15) + 'px';
+        eventPopup.style.top = (info.jsEvent.pageY + 15) + 'px';
+        
+        eventPopup.classList.remove('d-none');
+      }
+    });
+    
+    calendar.render();
+
+    calendar.on('dateClick', function() {
+        fecharPopup();
+    });
+  });
+
+  function fecharPopup() {
+      document.getElementById('eventPopup').classList.add('d-none');
+  }
+</script>
+{% endblock %}
