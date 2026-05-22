@@ -50,7 +50,6 @@ pip install -r requirements.txt
 Crie um arquivo chamado `.env` na raiz do projeto (use o exemplo abaixo):
 ```env
 FLASK_ENV=development
-SECRET_KEY=sua_chave_secreta_aqui
 DATABASE_URL=sqlite:///agenda.db
 GEMINI_API_KEY=SUA_CHAVE_AIZA_AQUI
 GEMINI_MODEL_NAME=gemini-flash-lite-latest
