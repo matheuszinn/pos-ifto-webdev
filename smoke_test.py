@@ -2,7 +2,7 @@ import requests
 import json
 import time
 
-BASE_URL = "http://127.0.0.1:5000"
+BASE_URL = "http://127.0.0.1:5001"
 
 def run_smoke_test():
     # Usar uma sessão para manter os cookies de autenticação
@@ -10,11 +10,11 @@ def run_smoke_test():
     
     print("--- 1. Registrando novo usuário ---")
     user_data = {"email": f"test_{int(time.time())}@agenda.com", "password": "securepassword"}
-    r = session.post(f"{BASE_URL}/api/register", json=user_data)
+    r = session.post(f"{BASE_URL}/cadastro", json=user_data)
     print(r.json())
 
     print("\n--- 2. Fazendo Login ---")
-    r = session.post(f"{BASE_URL}/api/login", json=user_data)
+    r = session.post(f"{BASE_URL}/login", json=user_data)
     print(r.json())
 
     print("\n--- 3. Testando Agendamento via IA (Texto Livre) ---")

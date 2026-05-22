@@ -306,3 +306,76 @@ def delete_user():
         return jsonify({"message": message}), 200
     else:
         return jsonify({"error": message}), 400
+
+
+@main_bp.route("/api/events", methods=["GET"])
+@login_required
+def api_get_events():
+    events = CalendarService.get_user_events(session["user_id"])
+    return jsonify([
+        {
+            "id": e.id,
+            "title": e.title,
+            "description": e.description,
+            "start_time": e.start_time.isoformat(),
+            "end_time": e.end_time.isoformat() if e.end_time else None,
+            "is_ai_generated": e.is_ai_generated
+        } for e in events
+    ]), 200
+
+
+@main_bp.route("/api/ai/process", methods=["POST"])
+@login_required
+def api_ai_process():
+    data = request.get_json()
+    prompt = data.get("prompt")
+    if not prompt:
+        return jsonify({"error": "Prompt é obrigatório"}), 400
+
+    event_data = ai_service.process_annotation_prompt(prompt)
+    if "error" in event_data:
+        return jsonify(event_data), 400
+
+    try:
+        start_time = datetime.fromisoformat(event_data["start_time"].replace("Z", "+00:00"))
+        end_time = datetime.fromisoformat(event_data["end_time"].replace("Z", "+00:00")) if event_data.get("end_time") else None
+
+        new_event = CalendarService.add_event(
+            session["user_id"],
+            event_data["title"],
+            event_data.get("description", ""),
+            start_time,
+            end_time,
+            is_ai_generated=True,
+        )
+        return jsonify({"status": "success", "event": {
+            "id": new_event.id,
+            "title": new_event.title,
+            "start_time": new_event.start_time.isoformat()
+        }}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@main_bp.route("/api/ai/routine", methods=["POST"])
+@login_required
+def api_ai_routine():
+    data = request.get_json()
+    routine_type = data.get("routine_type")
+    context = data.get("context", "")
+    days = data.get("days", 7)
+
+    if not routine_type:
+        return jsonify({"error": "Tipo de rotina é obrigatório"}), 400
+
+    success, result = ai_service.generate_routine_and_save(
+        session["user_id"],
+        routine_type,
+        context,
+        int(days)
+    )
+
+    if success:
+        return jsonify({"status": "success", "event_ids": result}), 201
+    else:
+        return jsonify({"error": result}), 400
