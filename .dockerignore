@@ -4,5 +4,6 @@ __pycache__/
 instance/
 .env
 agenda.db
-.pytest_cache/
-tests/.pytest_cache/
+.git
+.pytest_cache
+tests/.pytest_cache
