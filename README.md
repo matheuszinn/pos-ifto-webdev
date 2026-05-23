@@ -2,17 +2,17 @@
 
 Agenda Pro é uma aplicação web moderna que combina o gerenciamento tradicional de calendário com a potência da Inteligência Artificial (Google Gemini). O sistema permite que os usuários criem eventos via linguagem natural, gerem rotinas complexas automaticamente e mantenham sua vida organizada de forma inteligente.
 
-Esta versão inclui uma interface robusta, acessível e totalmente responsiva.
+Esta versão inclui uma interface robusta, acessível e totalmente responsiva, com processamento assíncrono de IA e cache de performance.
 
 ## 🚀 Funcionalidades Principais
 
 - **Agendamento Mágico (IA):** Digite "Reunião amanhã às 14h" e a IA estrutura o evento para você.
-- **Geração de Rotinas (IA):** Gere planos de estudo ou exercícios para vários dias com um único clique.
-- **Calendário Interativo:** Visualize seus compromissos em visualizações de Mês, Semana, Dia ou Lista.
+- **Geração de Rotinas (IA):** Gere planos de estudo ou exercícios para vários dias em segundo plano.
+- **Calendário Interativo:** Visualize compromissos em visualizações de Mês, Semana, Dia ou Lista.
 - **Interface Responsiva:** Otimizada para Desktop, Tablet e Mobile.
-- **UX & Acessibilidade:** Navegação por teclado, feedbacks visuais de carregamento e validações em tempo real.
-- **Performance:** Sistema de cache inteligente para carregamento rápido de eventos.
-- **Autenticação Completa:** Sistema de cadastro e login seguro com hash de senhas.
+- **UX & Acessibilidade:** Navegação por teclado, feedbacks visuais de carregamento (spinners) e validações em tempo real.
+- **Performance:** Sistema de cache inteligente (Flask-Caching) e processamento assíncrono (Threading).
+- **Autenticação Completa:** Sistema de cadastro e login seguro com hash de senhas e validação de e-mail.
 
 ---
 
@@ -20,46 +20,33 @@ Esta versão inclui uma interface robusta, acessível e totalmente responsiva.
 
 - **Python 3.11 ou superior**
 - Uma conta no [Google AI Studio](https://aistudio.google.com/) para obter uma `GEMINI_API_KEY`.
-- **Make** (opcional, para usar os comandos do Makefile).
+- **Make** instalado no sistema.
+- **Docker** (opcional, para testes de fumaça em container).
 
 ---
 
-## 📦 Configuração do Ambiente
+## ⚙️ Variáveis de Ambiente
 
-Siga os passos abaixo para rodar o projeto localmente:
+Crie um arquivo `.env` na raiz do projeto com as seguintes chaves:
 
-### 1. Clonar o repositório
-```bash
-git clone <url-do-repositorio>
-cd pos-ifto-webdev
-```
+| Variável | Descrição | Exemplo |
+| :--- | :--- | :--- |
+| `FLASK_ENV` | Ambiente de execução (`development` ou `production`). | `development` |
+| `SECRET_KEY` | Chave para sessões (opcional, possui default para dev). | `minha_chave_secreta` |
+| `DATABASE_URL` | URL de conexão do SQLite. | `sqlite:///agenda.db` |
+| `GEMINI_API_KEY` | Sua chave de API do Google Gemini. | `AIzaSy...` |
+| `GEMINI_MODEL_NAME` | Nome do modelo do Gemini a ser utilizado. | `gemini-pro` |
 
-### 2. Criar e ativar o ambiente virtual
-```bash
-# No macOS/Linux:
-python3 -m venv venv
-source venv/bin/activate
-```
+---
 
-### 3. Instalar dependências e Makefile
+## 📦 Configuração e Execução
+
+### 1. Preparar Ambiente
 ```bash
 make install
 ```
 
-### 4. Configurar variáveis de ambiente
-Crie um arquivo chamado `.env` na raiz do projeto:
-```env
-FLASK_ENV=development
-DATABASE_URL=sqlite:///agenda.db
-GEMINI_API_KEY=SUA_CHAVE_AQUI
-GEMINI_MODEL_NAME=gemini-pro
-```
-
----
-
-## 🏃 Executando a Aplicação
-
-Para iniciar o servidor:
+### 2. Rodar Aplicação
 ```bash
 make run
 ```
@@ -67,26 +54,24 @@ Acesse: [http://127.0.0.1:5001](http://127.0.0.1:5001)
 
 ---
 
-## 🧪 Testes e Validação
+## 🧪 Comandos de Build e Teste
 
-### Testes Automatizados (pytest)
-```bash
-make test
-```
+Utilize o `Makefile` para gerenciar o ciclo de vida do projeto:
 
-### Teste de Fumaça (Docker + Smoke Test)
-```bash
-make docker-build
-make docker-run
-make smoke-test
-```
+- **Instalação:** `make install`
+- **Execução:** `make run`
+- **Testes Unitários/Integração:** `make test`
+- **Build Docker:** `make docker-build`
+- **Executar Docker:** `make docker-run`
+- **Limpar Docker:** `make docker-clean`
+- **Smoke Test:** `make smoke-test` (Valida o container rodando)
 
 ---
 
-## 🧰 Tecnologias Utilizadas
+## 🧰 Stack Tecnológica
 
-- **Backend:** Flask, Flask-SQLAlchemy (SQLite), Flask-Caching.
-- **IA:** Google Generative AI (Gemini Pro).
-- **Frontend:** Jinja2, Bootstrap 5, FullCalendar 6.
-- **Testes:** Pytest, Pytest-Mock.
+- **Backend:** Flask, Flask-SQLAlchemy, Flask-Caching, python-dotenv.
+- **IA:** Google Generative AI (Gemini SDK).
+- **Frontend:** Jinja2, Bootstrap 5, FullCalendar 6, Bootstrap Icons.
+- **Testes:** Pytest, Pytest-Mock, Requests (smoke test).
 - **Infra:** Docker, Makefile.
