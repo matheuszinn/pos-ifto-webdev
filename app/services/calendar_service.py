@@ -1,9 +1,10 @@
 from app.models import db, CalendarEvent
+from app import cache
 
 class CalendarService:
     @staticmethod
     def add_event(user_id, title, description, start_time, end_time=None, is_ai_generated=False):
-        """Creates a new calendar event."""
+        """Creates a new calendar event and invalidates user events cache."""
         if end_time and end_time < start_time:
             raise ValueError("O horário de término deve ser posterior ao horário de início.")
 
@@ -18,9 +19,13 @@ class CalendarService:
         db.session.add(new_event)
         db.session.commit()
         
+        # Invalidate cache
+        cache.delete_memoized(CalendarService.get_user_events, user_id)
+        
         return new_event
 
     @staticmethod
+    @cache.memoize(timeout=300) # Cache for 5 minutes
     def get_user_events(user_id, start_date=None, end_date=None):
         """Retrieves events for a specific user, optionally filtered by date range."""
         query = CalendarEvent.query.filter_by(user_id=user_id)
@@ -32,17 +37,20 @@ class CalendarService:
 
     @staticmethod
     def delete_event(event_id, user_id):
-        """Deletes a calendar event if it belongs to the user."""
+        """Deletes a calendar event if it belongs to the user and invalidates cache."""
         event = CalendarEvent.query.filter_by(id=event_id, user_id=user_id).first()
         if event:
             db.session.delete(event)
             db.session.commit()
+            
+            # Invalidate cache
+            cache.delete_memoized(CalendarService.get_user_events, user_id)
             return True
         return False
 
     @staticmethod
     def update_event(event_id, user_id, title=None, description=None, start_time=None, end_time=None):
-        """Updates an existing calendar event."""
+        """Updates an existing calendar event and invalidates cache."""
         event = CalendarEvent.query.filter_by(id=event_id, user_id=user_id).first()
         if not event:
             return False, "Evento não encontrado"
@@ -60,4 +68,7 @@ class CalendarService:
         if end_time: event.end_time = end_time
         
         db.session.commit()
+        
+        # Invalidate cache
+        cache.delete_memoized(CalendarService.get_user_events, user_id)
         return True, event

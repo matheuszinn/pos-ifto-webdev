@@ -86,15 +86,31 @@ class AIGeminiService:
         if not self.model:
             return False, "API Key not configured"
 
-        prompt = (
-            f"Gerar uma rotina de {routine_type} para {days} dias, começando a partir de: {start_reference}. "
-            f"Contexto adicional: {context}. "
-            "Retornar uma lista JSON de objetos com 'title', 'description', 'start_time' e 'end_time' (formato ISO 8601). "
-            "Certifique-se de que os horários façam sentido para a rotina solicitada."
-        )
+        # Threaded wrapper to prevent blocking
+        import threading
+        
+        # Capture current app for background task
+        from flask import current_app
+        app = current_app._get_current_object()
 
+        def run_in_background(app):
+            with app.app_context():
+                self._execute_routine_generation(user_id, routine_type, context, days, start_reference)
+        
+        thread = threading.Thread(target=run_in_background, args=(app,))
+        thread.start()
+        
+        return True, "Processando rotina em segundo plano..."
 
+    def _execute_routine_generation(self, user_id, routine_type, context, days, start_reference):
+        """Internal method to handle routine generation logic."""
         try:
+            prompt = (
+                f"Gerar uma rotina de {routine_type} para {days} dias, começando a partir de: {start_reference}. "
+                f"Contexto adicional: {context}. "
+                "Retornar uma lista JSON de objetos com 'title', 'description', 'start_time' e 'end_time' (formato ISO 8601). "
+                "Certifique-se de que os horários façam sentido para a rotina solicitada."
+            )
             response = self.model.generate_content(prompt)
             content = response.text.strip()
             
@@ -104,13 +120,12 @@ class AIGeminiService:
                 content = content.replace("```", "").strip()
             
             routine_events = json.loads(content)
-            new_ids = []
             
             for event in routine_events:
                 start_time = datetime.fromisoformat(event['start_time'].replace('Z', '+00:00'))
                 end_time = datetime.fromisoformat(event['end_time'].replace('Z', '+00:00')) if event.get('end_time') else None
                 
-                new_event = CalendarService.add_event(
+                CalendarService.add_event(
                     user_id=user_id,
                     title=event['title'],
                     description=event.get('description', ''),
@@ -118,8 +133,5 @@ class AIGeminiService:
                     end_time=end_time,
                     is_ai_generated=True
                 )
-                new_ids.append(new_event.id)
-            
-            return True, new_ids
         except Exception as e:
-            return False, f"Falha na geração da rotina pela IA: {str(e)}"
+            print(f"Erro assíncrono na IA: {str(e)}")

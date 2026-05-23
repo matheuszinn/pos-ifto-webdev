@@ -1,12 +1,16 @@
 from flask import Flask
+from flask_caching import Cache
 from app.models import db
 from config import Config
+
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
     db.init_app(app)
+    cache.init_app(app)
 
     from sqlalchemy import event
     from sqlalchemy.engine import Engine

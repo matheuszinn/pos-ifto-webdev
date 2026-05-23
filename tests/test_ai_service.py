@@ -78,7 +78,16 @@ def test_generate_routine_and_save_success(ai_service, app, mocker):
 
     with app.app_context():
         _, user = UserService.register_user('routine@test.com', 'password')
-        success, event_ids = ai_service.generate_routine_and_save(user.id, "exercício", "foco em cardio", 2, "amanhã")
+        
+        # In test mode, we might want to call the internal method directly or join the thread
+        success, message = ai_service.generate_routine_and_save(user.id, "exercício", "foco em cardio", 2, "amanhã")
         
         assert success is True
-        assert len(event_ids) == 2
+        
+        # Wait for the background task to complete for testing purposes
+        import time
+        time.sleep(1) 
+        
+        from app.services.calendar_service import CalendarService
+        events = CalendarService.get_user_events(user.id)
+        assert len(events) == 2

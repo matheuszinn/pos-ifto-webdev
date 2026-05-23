@@ -9,7 +9,7 @@ install: ## Instala dependências do projeto
 	pip install -r requirements.txt
 
 run: ## Roda o servidor de desenvolvimento
-	export PYTHONPATH=$PYTHONPATH:. && export FLASK_APP="app:create_app()" && flask run --port 5001
+	source venv/bin/activate && export PYTHONPATH=$PYTHONPATH:. && export FLASK_APP="app:create_app()" && flask run --port 5001
 
 test: ## Roda a suíte de testes (pytest)
 	export PYTHONPATH=$PYTHONPATH:. && pytest
