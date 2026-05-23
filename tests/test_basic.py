@@ -44,14 +44,14 @@ def test_agenda_unauthorized(client):
 def test_login_api(client, app):
     from app.services.user_service import UserService
     with app.app_context():
-        UserService.register_user('api@test.com', 'pass')
+        UserService.register_user('api@test.com', 'password')
     
-    response = client.post('/login', json={'email': 'api@test.com', 'senha': 'pass'})
+    response = client.post('/login', json={'email': 'api@test.com', 'senha': 'password'})
     assert response.status_code == 200
     assert response.get_json()['message'] == "Login realizado com sucesso"
 
 def test_register_invalid_email(client):
-    response = client.post('/cadastro', json={'email': 'invalid-email', 'senha': 'pass'})
+    response = client.post('/cadastro', json={'email': 'invalid-email', 'senha': 'password'})
     assert response.status_code == 400
     assert "email inválido" in response.get_json()['error']
 
@@ -79,12 +79,12 @@ def test_delete_user_cascade_api(client, app):
     from datetime import datetime
     
     with app.app_context():
-        _, user = UserService.register_user('delete@test.com', 'pass')
+        _, user = UserService.register_user('delete@test.com', 'password')
         user_id = user.id
         CalendarService.add_event(user_id, 'Bye', 'Desc', datetime.now())
     
     # Login
-    client.post('/login', json={'email': 'delete@test.com', 'senha': 'pass'})
+    client.post('/login', json={'email': 'delete@test.com', 'senha': 'password'})
     
     # Delete account
     response = client.delete('/api/user')

@@ -5,6 +5,9 @@ class UserService:
     @staticmethod
     def register_user(email, password, name=None):
         """Registers a new user if the email is not already taken and is valid."""
+        if len(password) < 6:
+            return False, "Senha deve ter pelo menos 6 caracteres"
+
         try:
             # Validate email format without DNS check for speed and test compatibility
             validate_email(email, check_deliverability=False)
@@ -34,6 +37,9 @@ class UserService:
     @staticmethod
     def update_password(user_id, new_password):
         """Updates the password for a given user."""
+        if len(new_password) < 6:
+            return False, "Senha deve ter pelo menos 6 caracteres"
+
         user = db.session.get(User, user_id)
         if not user:
             return False, "Usuário não encontrado"

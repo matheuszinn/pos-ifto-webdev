@@ -4,6 +4,9 @@ class CalendarService:
     @staticmethod
     def add_event(user_id, title, description, start_time, end_time=None, is_ai_generated=False):
         """Creates a new calendar event."""
+        if end_time and end_time < start_time:
+            raise ValueError("O horário de término deve ser posterior ao horário de início.")
+
         new_event = CalendarEvent(
             user_id=user_id,
             title=title,
@@ -43,6 +46,13 @@ class CalendarService:
         event = CalendarEvent.query.filter_by(id=event_id, user_id=user_id).first()
         if not event:
             return False, "Evento não encontrado"
+        
+        # Determine effective times for validation
+        new_start = start_time or event.start_time
+        new_end = end_time or event.end_time
+        
+        if new_end and new_end < new_start:
+            return False, "O horário de término deve ser posterior ao horário de início."
         
         if title: event.title = title
         if description is not None: event.description = description

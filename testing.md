@@ -1,34 +1,51 @@
-# Plano de Testes - Agenda Pro
+# Plano de Testes - Agenda Pro (V2)
 
-Este documento descreve a estratégia de testes automatizados para validar a integridade do sistema Agenda Pro, focando em cenários críticos e evitando regressões.
+Este documento descreve a estratégia de testes automatizados para validar a integridade do sistema Agenda Pro, focando em cenários críticos e tratamento de erros.
 
 ## 1. Estratégia de Teste
-A estratégia baseia-se em Test-Driven Development (TDD) para validar a lógica de negócio e as rotas da aplicação.
-- **Testes Unitários:** Validação dos serviços (`UserService`, `CalendarService`).
-- **Testes de Integração:** Validação das rotas Flask e persistência no banco de dados SQLite (em memória para testes).
-- **Mocks:** Utilização de mocks para simular a API do Gemini, evitando dependências externas e custos/latência desnecessários durante os testes.
+- **Testes Unitários:** Validação exaustiva de `UserService` e `CalendarService`.
+- **Testes de Integração:** Validação das rotas Flask (MTV e JSON API).
+- **Mocks:** Simulação da API do Gemini para testes determinísticos.
 
-## 2. Cenários Críticos (Prioritários)
+## 2. Cenários de Teste
 
-### 2.1 Autenticação e Usuário
-- **Registro de Novo Usuário:** Validar criação bem-sucedida e erro para e-mails duplicados.
-- **Autenticação:** Validar login com credenciais corretas e falha com credenciais incorretas.
-- **Acesso Protegido:** Garantir que rotas como `/dashboard` redirecionem para login se o usuário não estiver autenticado.
+### 2.1 Usuário e Autenticação
+- **Registro:**
+    - Sucesso com dados válidos.
+    - Falha: E-mail já cadastrado.
+    - Falha: E-mail em formato inválido.
+    - Falha: Senha muito curta (menos de 6 caracteres).
+- **Autenticação:**
+    - Sucesso com credenciais corretas.
+    - Falha: Senha incorreta.
+    - Falha: Usuário inexistente.
+- **Segurança:**
+    - Acesso à `/agenda` sem login redireciona para `/login`.
+    - Endpoints `/api/*` sem login retornam `401`.
 
 ### 2.2 Gerenciamento de Agenda
-- **Criação de Eventos:** Validar persistência de eventos manuais.
-- **Consulta de Eventos:** Garantir que um usuário visualize apenas seus próprios eventos.
+- **Eventos:**
+    - Criar evento com sucesso.
+    - Falha: `end_time` anterior a `start_time`.
+    - Editar evento com sucesso.
+    - Falha: Editar evento de outro usuário (deve retornar erro ou 404).
+    - Deletar evento com sucesso.
+    - Falha: Deletar evento de outro usuário.
 
-### 2.3 Infraestrutura (Docker)
-- **Validação de Build:** Garantir que o `Dockerfile` contenha os comandos necessários para instalar dependências e expor a porta correta.
+### 2.3 Inteligência Artificial (Mocado)
+- **Extração de Evento:**
+    - Simular resposta JSON limpa do Gemini.
+    - Simular resposta do Gemini com blocos markdown (deve limpar e parsear).
+    - Simular resposta do Gemini como lista (deve extrair primeiro item).
+    - Falha: Resposta JSON inválida (deve tratar graciosamente).
+- **Geração de Rotina:**
+    - Simular geração de múltiplos eventos e validar persistência.
 
-## 3. Ferramentas
-- **Framework:** `pytest`
-- **Mocks:** `pytest-mock`
-- **Banco de Dados:** SQLite (in-memory) para isolamento.
-
-## 4. Execução dos Testes
-Os testes podem ser executados com o comando:
+## 3. Execução
 ```bash
 pytest
+```
+Para testes de fumaça em ambiente Docker:
+```bash
+python3 smoke_test.py
 ```

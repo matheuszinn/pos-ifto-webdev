@@ -77,7 +77,7 @@ def test_generate_routine_and_save_success(ai_service, app, mocker):
     ai_service.model.generate_content.return_value = mock_response
 
     with app.app_context():
-        _, user = UserService.register_user('routine@test.com', 'pass')
+        _, user = UserService.register_user('routine@test.com', 'password')
         success, event_ids = ai_service.generate_routine_and_save(user.id, "exercício", "foco em cardio", 2, "amanhã")
         
         assert success is True
