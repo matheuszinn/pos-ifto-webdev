@@ -1,51 +1,48 @@
 # Plano de Testes - Agenda Pro (V2)
 
-Este documento descreve a estratégia de testes automatizados para validar a integridade do sistema Agenda Pro, focando em cenários críticos e tratamento de erros.
+Este documento descreve a estratégia de testes automatizados e manuais para validar a integridade do sistema Agenda Pro, com foco em robustez, backend e experiência de usuário (UX).
 
 ## 1. Estratégia de Teste
 - **Testes Unitários:** Validação exaustiva de `UserService` e `CalendarService`.
 - **Testes de Integração:** Validação das rotas Flask (MTV e JSON API).
+- **Testes de Frontend (Manuais/E2E):** Validação de UI, responsividade e acessibilidade.
 - **Mocks:** Simulação da API do Gemini para testes determinísticos.
 
-## 2. Cenários de Teste
+## 2. Cenários de Teste Backend
 
 ### 2.1 Usuário e Autenticação
-- **Registro:**
-    - Sucesso com dados válidos.
-    - Falha: E-mail já cadastrado.
-    - Falha: E-mail em formato inválido.
-    - Falha: Senha muito curta (menos de 6 caracteres).
-- **Autenticação:**
-    - Sucesso com credenciais corretas.
-    - Falha: Senha incorreta.
-    - Falha: Usuário inexistente.
-- **Segurança:**
-    - Acesso à `/agenda` sem login redireciona para `/login`.
-    - Endpoints `/api/*` sem login retornam `401`.
+- **Registro:** Sucesso, Falha (Email duplicado), Falha (Email inválido), Falha (Senha curta).
+- **Autenticação:** Sucesso, Falha (Senha incorreta), Falha (Usuário inexistente).
+- **Segurança:** Proteção de rotas via login e retorno de 401 para APIs protegidas.
 
 ### 2.2 Gerenciamento de Agenda
-- **Eventos:**
-    - Criar evento com sucesso.
-    - Falha: `end_time` anterior a `start_time`.
-    - Editar evento com sucesso.
-    - Falha: Editar evento de outro usuário (deve retornar erro ou 404).
-    - Deletar evento com sucesso.
-    - Falha: Deletar evento de outro usuário.
+- **Eventos:** Criar (Sucesso), Falha (Cronologia), Editar (Ownership), Deletar (Ownership).
 
-### 2.3 Inteligência Artificial (Mocado)
-- **Extração de Evento:**
-    - Simular resposta JSON limpa do Gemini.
-    - Simular resposta do Gemini com blocos markdown (deve limpar e parsear).
-    - Simular resposta do Gemini como lista (deve extrair primeiro item).
-    - Falha: Resposta JSON inválida (deve tratar graciosamente).
-- **Geração de Rotina:**
-    - Simular geração de múltiplos eventos e validar persistência.
+### 2.3 Inteligência Artificial
+- **Extração/Rotina:** Simular respostas variadas do Gemini (JSON limpo, markdown, lista, erro).
 
-## 3. Execução
+## 3. Cenários de Teste Frontend (UX/UI)
+
+### 3.1 Responsividade
+- **Cenário Mobile:** Validar que a Navbar colapsa e o calendário ajusta a visualização para dispositivos pequenos.
+- **Cenário Tablet:** Validar que o layout em coluna única funciona sem quebra de elementos.
+
+### 3.2 Estados de Feedback
+- **Carregamento:** Clicar em "Processar com IA" e verificar se o botão desabilita ou exibe spinner.
+- **Mensagens:** Verificar se erros de validação aparecem como alertas flutuantes claros.
+- **Validação Visual:** Tentar submeter formulários vazios e verificar o feedback `is-invalid` do Bootstrap.
+
+### 3.3 Acessibilidade
+- **Teclado:** Navegar por toda a aplicação usando apenas `Tab` e `Enter`. Verificar se o foco é visível.
+- **Leitores de Tela:** Validar a presença de `aria-label` em botões de ação e ícones.
+
+## 4. Execução dos Testes
+### Backend (Automatizado)
 ```bash
 pytest
 ```
-Para testes de fumaça em ambiente Docker:
-```bash
-python3 smoke_test.py
-```
+### Frontend (Manual/Smoke)
+1.  Rodar a aplicação: `make run`
+2.  Acessar `http://localhost:5001`
+3.  Executar fluxo de cadastro -> login -> agendamento IA -> edição.
+4.  Redimensionar a janela do navegador para testar responsividade.

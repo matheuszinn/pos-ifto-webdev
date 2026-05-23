@@ -1,249 +1,306 @@
 {% extends 'base.html' %}
 
-{% block title %}Minha Agenda Inteligente{% endblock %}
+{% block title %}Minha Agenda - Agenda Pro{% endblock %}
 
 {% block head %}
-<!-- Dependência Isolada do FullCalendar -->
+<!-- Dependência do FullCalendar -->
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+<style>
+    .fc-event { cursor: pointer; transition: transform 0.1s ease; border: none !important; }
+    .fc-event:hover { transform: scale(1.02); filter: brightness(0.9); }
+    .fc-toolbar-title { font-weight: 700 !important; color: #344767; }
+    .sidebar-card { transition: all 0.3s ease; }
+    .sidebar-card:hover { transform: translateY(-5px); }
+    
+    @media (max-width: 991.98px) {
+        #calendar { margin-top: 2rem; }
+    }
+    
+    /* Acessibilidade: Contraste no FullCalendar */
+    .fc-v-event .fc-event-main { color: #fff !important; }
+</style>
 {% endblock %}
 
 {% block content %}
 <!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3 mb-4">
     <div class="container-fluid px-4">
-        <a class="navbar-brand fw-bold" href="{{ url_for('main.agenda') }}">
-            <i class="bi bi-calendar-check-fill me-2"></i>Agenda IA
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('main.agenda') }}">
+            <div class="bg-primary p-2 rounded-3 me-2 d-flex align-items-center justify-content-center">
+                <i class="bi bi-calendar-check-fill fs-5"></i>
+            </div>
+            <span>Agenda Pro</span>
         </a>
         
-        <div class="ms-auto d-flex align-items-center">
-            <div class="dropdown">
-                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width: 38px; height: 38px; font-size: 0.9rem;">
-                        {{ iniciais }}
-                    </div>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userDropdown">
-                    <li><h6 class="dropdown-header">{{ session.user_email }}</h6></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <a class="dropdown-item text-danger fw-bold" href="{{ url_for('main.logout') }}">
-                            <i class="bi bi-box-arrow-right me-2"></i>Sair
-                        </a>
-                    </li>
-                </ul>
-            </div>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-label="Abrir menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item dropdown mt-3 mt-lg-0">
+                    <a href="#" class="nav-link d-flex align-items-center text-white dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center fw-bold me-2 shadow-sm" style="width: 40px; height: 40px;">
+                            {{ iniciais }}
+                        </div>
+                        <span class="d-lg-none">{{ session.user_email }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2" aria-labelledby="userDropdown">
+                        <li><h6 class="dropdown-header text-muted">{{ session.user_email }}</h6></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger fw-bold py-2" href="{{ url_for('main.logout') }}">
+                                <i class="bi bi-box-arrow-right me-2"></i>Sair
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
         </div>
     </div>
 </nav>
 
-<div class="container-fluid px-4">
+<div class="container-fluid px-4 pb-5">
     <div class="row">
         <!-- Painel Lateral: Controles de IA -->
-        <div class="col-lg-3 mb-4">
+        <aside class="col-lg-3">
             
-            <!-- Formulário: IA Processar Anotação -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0">Transformar Anotação em Evento</h6>
+            <div class="d-grid mb-4">
+                <button class="btn btn-primary shadow-sm py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                    <i class="bi bi-plus-lg me-2"></i>Novo Evento Manual
+                </button>
+            </div>
+
+            <!-- Card: IA Prompt -->
+            <div class="card sidebar-card shadow-sm border-0 mb-4 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h6 class="fw-bold text-primary d-flex align-items-center">
+                        <i class="bi bi-magic me-2"></i>Agendamento Mágico
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <form action="{{ url_for('main.ia_prompt') }}" method="POST">
+                    <form action="{{ url_for('main.ia_prompt') }}" method="POST" onsubmit="setBtnLoading(this.querySelector('button[type=submit]'))">
                         <div class="mb-3">
-                            <label for="prompt" class="form-label text-muted small">Cole seu texto livre (ex: "Almoço com o João amanhã às 12h")</label>
-                            <textarea class="form-control" id="prompt" name="prompt" rows="3" required></textarea>
+                            <label for="prompt" class="form-label text-muted small">Descreva o que deseja agendar</label>
+                            <textarea class="form-control bg-light border-0" id="prompt" name="prompt" rows="3" required placeholder="Ex: Dentista amanhã às 15h..."></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 btn-sm">Processar com IA</button>
+                        <button type="submit" class="btn btn-outline-primary w-100 btn-sm fw-bold">Estruturar com IA</button>
                     </form>
                 </div>
             </div>
 
-            <!-- Formulário: IA Gerar Rotina -->
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-success text-white">
-                    <h6 class="mb-0">Gerar Nova Rotina</h6>
+            <!-- Card: IA Rotina -->
+            <div class="card sidebar-card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h6 class="fw-bold text-success d-flex align-items-center">
+                        <i class="bi bi-lightning-charge-fill me-2"></i>Gerador de Rotinas
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <form action="{{ url_for('main.ia_rotina') }}" method="POST">
+                    <form action="{{ url_for('main.ia_rotina') }}" method="POST" onsubmit="setBtnLoading(this.querySelector('button[type=submit]'))">
                         <div class="mb-3">
-                            <label for="tipo_rotina" class="form-label text-muted small">Qual rotina deseja iniciar?</label>
-                            <input type="text" class="form-control mb-2" id="tipo_rotina" name="tipo_rotina" placeholder="Ex: Treino de pernas, Estudo..." required>
+                            <label for="tipo_rotina" class="form-label text-muted small">Objetivo da rotina</label>
+                            <input type="text" class="form-control bg-light border-0" id="tipo_rotina" name="tipo_rotina" placeholder="Ex: Estudar Flask" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="dias" class="form-label text-muted small">Duração (dias)</label>
-                            <input type="number" class="form-control" id="dias" name="dias" value="7" min="1" max="30">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label for="dias" class="form-label text-muted small">Duração</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control bg-light border-0" id="dias" name="dias" value="3" min="1" max="15">
+                                    <span class="input-group-text bg-light border-0 text-muted">dias</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label for="inicio" class="form-label text-muted small">Início</label>
+                                <input type="text" class="form-control bg-light border-0 form-control-sm" id="inicio" name="inicio" placeholder="Ex: hoje">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="inicio" class="form-label text-muted small">Quando começa?</label>
-                            <input type="text" class="form-control" id="inicio" name="inicio" placeholder="Ex: hoje, amanhã, próxima segunda ou 20/06...">
-                            <div class="form-text" style="font-size: 0.75rem;">Você pode usar datas específicas ou termos como "amanhã".</div>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100 btn-sm">Criar Tarefas Automaticamente</button>
+                        <button type="submit" class="btn btn-outline-success w-100 btn-sm fw-bold">Gerar Plano IA</button>
                     </form>
                 </div>
             </div>
 
-        </div>
+        </aside>
 
         <!-- Área Principal: Calendário -->
         <div class="col-lg-9">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div id="calendar" style="min-height: 600px;"></div>
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-2 p-md-4">
+                    <div id="calendar"></div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Janela Pop-up Flutuante do Evento (Gerenciamento) -->
-<div id="eventPopup" class="card border-0 shadow-lg position-absolute d-none" style="width: 320px; z-index: 1050;">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
-        <h6 class="mb-0 text-truncate" id="popupEventTitle" style="max-width: 250px;">Título</h6>
-        <button type="button" class="btn-close btn-close-white btn-sm" onclick="fecharPopup()" aria-label="Fechar"></button>
-    </div>
-    <div class="card-body p-3">
-        <p id="popupEventDateTime" class="text-primary small fw-bold mb-2"></p>
-        <p id="popupEventDescription" class="text-secondary small mb-3"></p>
-
-        <div class="d-flex justify-content-between border-top pt-2">
-            <!-- Ação: Deletar -->
-            <form id="popupDeleteForm" action="{{ url_for('main.deletar_evento') }}" method="POST" class="m-0" onsubmit="return confirm('Tem certeza que deseja excluir este evento? Esta ação não pode ser desfeita.');">
-                <input type="hidden" name="evento_id" id="popupDeleteEventId" value="">
-                <button type="submit" class="btn btn-sm btn-outline-danger">Deletar</button>
-            </form>
-
-            <!-- Ação: Editar -->
-            <button type="button" id="popupEditButton" class="btn btn-sm btn-warning text-dark fw-medium">Editar</button>
         </div>
     </div>
 </div>
 
 <!-- Modal Novo Evento -->
-<div class="modal fade" id="addEventModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold">Novo Evento Manual</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" id="addEventModalLabel">Novo Evento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <form action="{{ url_for('main.add_event') }}" method="POST">
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label">Título</label>
-                        <input type="text" class="form-control bg-light border-0" name="title" required placeholder="Ex: Academia, Estudo...">
+                        <label class="form-label text-muted small fw-bold">Título</label>
+                        <input type="text" class="form-control bg-light border-0 py-2" name="title" required placeholder="O que você vai fazer?">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Data e Hora de Início</label>
-                        <input type="datetime-local" class="form-control bg-light border-0" name="start_time" required>
-                        <div class="form-text">Selecione o dia e o horário no seletor acima.</div>
+                        <label class="form-label text-muted small fw-bold">Data e Hora de Início</label>
+                        <input type="datetime-local" class="form-control bg-light border-0 py-2" name="start_time" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descrição (Opcional)</label>
-                        <textarea class="form-control bg-light border-0" name="description" rows="3"></textarea>
+                    <div class="mb-0">
+                        <label class="form-label text-muted small fw-bold">Descrição (Opcional)</label>
+                        <textarea class="form-control bg-light border-0" name="description" rows="3" placeholder="Detalhes adicionais..."></textarea>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Evento</button>
+                <div class="modal-footer border-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">Salvar Evento</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal Editar Evento -->
-<div class="modal fade" id="editEventModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title fw-bold">Editar Evento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Modal Visualizar/Editar Evento -->
+<div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div id="eventModalHeader" class="modal-header text-white border-0 pt-4 px-4 rounded-top-4">
+                <h5 class="modal-title fw-bold" id="editEventModalLabel">Detalhes do Evento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <form id="editEventForm" action="" method="POST" onsubmit="return confirm('Confirmar as alterações neste evento?');">
+            <form id="editEventForm" action="" method="POST">
                 <div class="modal-body p-4">
+                    <div id="aiBadge" class="mb-3 d-none">
+                        <span class="badge bg-purple-soft text-purple border border-purple px-3 py-2 rounded-pill small">
+                            <i class="bi bi-robot me-1"></i> Gerado por Inteligência Artificial
+                        </span>
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Título</label>
-                        <input type="text" class="form-control bg-light border-0" id="edit_title" name="title" required>
+                        <label class="form-label text-muted small fw-bold">Título</label>
+                        <input type="text" class="form-control bg-light border-0 py-2" id="edit_title" name="title" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Data e Hora de Início</label>
-                        <input type="datetime-local" class="form-control bg-light border-0" id="edit_start_time" name="start_time" required>
+                        <label class="form-label text-muted small fw-bold">Data e Hora de Início</label>
+                        <input type="datetime-local" class="form-control bg-light border-0 py-2" id="edit_start_time" name="start_time" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descrição (Opcional)</label>
+                    <div class="mb-0">
+                        <label class="form-label text-muted small fw-bold">Descrição</label>
                         <textarea class="form-control bg-light border-0" id="edit_description" name="description" rows="3"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning">Salvar Alterações</button>
+                <div class="modal-footer border-0 pb-4 px-4 d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-danger border-0 fw-bold" id="btnDeleteEvent">
+                            <i class="bi bi-trash3 me-1"></i>Excluir
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Fechar</button>
+                        <button type="submit" class="btn btn-warning px-4 fw-bold shadow-sm">Atualizar</button>
+                    </div>
                 </div>
+            </form>
+            <!-- Form Oculto para Delete -->
+            <form id="deleteEventForm" action="{{ url_for('main.deletar_evento') }}" method="POST" class="d-none">
+                <input type="hidden" name="evento_id" id="delete_event_id">
             </form>
         </div>
     </div>
 </div>
+
+<style>
+    .bg-purple-soft { background-color: #f3e8ff; }
+    .text-purple { color: #6b21a8; }
+    .border-purple { border-color: #d8b4fe !important; }
+</style>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar');
-    var eventPopup = document.getElementById('eventPopup');
-    var editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+    const calendarEl = document.getElementById('calendar');
+    const editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+    const editForm = document.getElementById('editEventForm');
+    const deleteForm = document.getElementById('deleteEventForm');
+    const btnDelete = document.getElementById('btnDeleteEvent');
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'timeGridWeek',
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek',
+      height: 'auto',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        right: window.innerWidth < 768 ? 'listWeek,dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
       },
       locale: 'pt-br',
+      buttonText: {
+        today: 'Hoje',
+        month: 'Mês',
+        week: 'Semana',
+        day: 'Dia',
+        list: 'Agenda'
+      },
+      allDaySlot: false,
+      slotMinTime: '06:00:00',
+      slotMaxTime: '23:59:59',
+      expandRows: true,
+      handleWindowResize: true,
+      windowResize: function(view) {
+        if (window.innerWidth < 768) {
+            calendar.changeView('listWeek');
+        } else {
+            calendar.changeView('timeGridWeek');
+        }
+      },
 
       events: {{ eventos | tojson | safe if eventos else '[]' }},
 
       eventClick: function(info) {
-        document.getElementById('popupEventTitle').innerText = info.event.title;
-        document.getElementById('popupEventDescription').innerText = info.event.extendedProps.description || 'Sem descrição cadastrada.';
-        document.getElementById('popupEventDateTime').innerText = info.event.start.toLocaleString('pt-BR');
+        const event = info.event;
+        const isAI = event.extendedProps.is_ai_generated;
+        
+        // Setup Modal Visuals
+        const header = document.getElementById('eventModalHeader');
+        header.className = 'modal-header text-white border-0 pt-4 px-4 rounded-top-4 ' + (isAI ? 'bg-dark' : 'bg-primary');
+        document.getElementById('aiBadge').classList.toggle('d-none', !isAI);
 
-        document.getElementById('popupDeleteEventId').value = info.event.id;
+        // Fill Form
+        editForm.action = '/evento/editar/' + event.id;
+        document.getElementById('delete_event_id').value = event.id;
+        document.getElementById('edit_title').value = event.title;
+        document.getElementById('edit_description').value = event.extendedProps.description || '';
 
-        // Configure Edit Button
-        document.getElementById('popupEditButton').onclick = function() {
-            document.getElementById('editEventForm').action = '/evento/editar/' + info.event.id;
-            document.getElementById('edit_title').value = info.event.title;
-            document.getElementById('edit_description').value = info.event.extendedProps.description || '';
+        // ISO format (YYYY-MM-DDTHH:mm)
+        const date = event.start;
+        const offset = date.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(date - offset)).toISOString().slice(0, 16);
+        document.getElementById('edit_start_time').value = localISOTime;
 
-            // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
-            const date = info.event.start;
-            const formattedDate = date.getFullYear() + '-' + 
-                String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                String(date.getDate()).padStart(2, '0') + 'T' + 
-                String(date.getHours()).padStart(2, '0') + ':' + 
-                String(date.getMinutes()).padStart(2, '0');
-            document.getElementById('edit_start_time').value = formattedDate;
-
-            fecharPopup();
-            editModal.show();
-        };
-
-        eventPopup.style.left = (info.jsEvent.pageX + 15) + 'px';
-        eventPopup.style.top = (info.jsEvent.pageY + 15) + 'px';
-
-        eventPopup.classList.remove('d-none');
+        editModal.show();
       }
     });
 
     calendar.render();
 
-    calendar.on('dateClick', function() {
-        fecharPopup();
+    // Handle Delete Action
+    btnDelete.addEventListener('click', function() {
+        if (confirm('Tem certeza que deseja remover este evento permanentemente?')) {
+            setBtnLoading(this);
+            deleteForm.submit();
+        }
+    });
+
+    // Handle Edit Submit
+    editForm.addEventListener('submit', function() {
+        setBtnLoading(this.querySelector('button[type=submit]'));
     });
   });
-
-  function fecharPopup() {
-      document.getElementById('eventPopup').classList.add('d-none');
-  }
 </script>
 {% endblock %}
